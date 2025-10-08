@@ -14,7 +14,7 @@ st.title("📘 気密試験記録 入力フォーム")
 試験圧力 = st.text_input("試験圧力 (MPa)")
 試験範囲 = st.text_input("試験範囲")
 試験媒体 = st.text_input("試験媒体")
-放置時間 = st.text_input("放置時間 (h)")
+放置時間 = st.text_input("放置時間 (h)", placeholder="例：10min以上")
 使用機器No = st.text_input("使用圧力計機器No.")
 測定場所 = st.text_input("測定場所")
 
@@ -42,15 +42,15 @@ with col6:
 st.subheader("測定値入力")
 col5, col6 = st.columns(2)
 with col5:
-    P1 = st.text_input("開始圧力 (MPa)", placeholder="例：0.0799")
+    P1 = st.text_input("開始圧力 (MPa)", placeholder="例：0.8760")
 with col6:
-    T1 = st.text_input("開始温度 (℃)", placeholder="例：27.2")
+    T1 = st.text_input("開始温度 (℃)", placeholder="例：20.1")
 
 col7, col8 = st.columns(2)
 with col7:
-    P2p = st.text_input("終了圧力 (MPa)", placeholder="例：0.0815")
+    P2p = st.text_input("終了圧力 (MPa)", placeholder="例：0.8756")
 with col8:
-    T2 = st.text_input("終了温度 (℃)", placeholder="例：29.8")
+    T2 = st.text_input("終了温度 (℃)", placeholder="例：19.3")
 
 試験実施者 = st.text_input("試験実施者")
 
