@@ -58,27 +58,28 @@ st.subheader("測定値入力")
 
 col5, col6 = st.columns([2, 2])
 with col5:
-    P1 = st.text_input("開始圧力 (MPa)")
+    P1 = st.text_input("開始圧力 (MPa)", placeholder="例：0.0799")
 with col6:
-    T1 = st.text_input("開始温度 (℃)")
+    T1 = st.text_input("開始温度 (℃)", placeholder="例：27.2")
 
 col7, col8 = st.columns([2, 2])
 with col7:
-    P2p = st.text_input("終了圧力 (MPa)")
+    P2p = st.text_input("終了圧力 (MPa)", placeholder="例：0.0815")
 with col8:
-    T2 = st.text_input("終了温度 (℃)")
+    T2 = st.text_input("終了温度 (℃)", placeholder="例：29.8")
 
-# 数値変換（入力が空のときは None）
-def to_float(v):
+# --- 数値変換（バリデーション無警告） ---
+def safe_float(v):
     try:
-        return float(v)
+        return float(v.strip()) if v else None
     except:
         return None
 
-P1 = to_float(P1)
-T1 = to_float(T1)
-P2p = to_float(P2p)
-T2 = to_float(T2)
+P1 = safe_float(P1)
+T1 = safe_float(T1)
+P2p = safe_float(P2p)
+T2 = safe_float(T2)
+
 
 試験実施者 = st.text_input("試験実施者")
 
