@@ -1,74 +1,61 @@
 import streamlit as st
 import openpyxl
 from datetime import datetime
-import base64
 from io import BytesIO
+import base64
 
 # === 設定 ===
-TEMPLATE = "気密試験記録.xlsx"   # 同じフォルダにテンプレートExcelを置く
+TEMPLATE = "気密試験記録.xlsx"  # 同じフォルダにテンプレートExcelを置く
 
-st.title("📑 気密試験記録 入力フォーム")
+st.title("🧾 気密試験記録 入力フォーム")
 
 # --- 入力項目 ---
-系統名 = st.text_input("系統名")
-試験圧力 = st.text_input("試験圧力 (MPa)")
-試験範囲 = st.text_input("試験範囲")
-試験媒体 = st.text_input("試験媒体")
-放置時間 = st.text_input("放置時間 (h)")
-使用機器No = st.text_input("使用圧力計機器No.")
-測定場所 = st.text_input("測定場所")
+st.subheader("試験情報入力")
+system_name = st.text_input("系統名")
+test_pressure = st.text_input("試験圧力 (MPa)")
+test_range = st.text_input("試験範囲")
+test_medium = st.text_input("試験媒体")
+test_time = st.text_input("放置時間 (h)")
+gauge_no = st.text_input("使用圧力計機器No.")
+test_location = st.text_input("測定場所")
 
-# --- 開始日時 ---
+# --- 日時 ---
 st.subheader("開始日時")
-col1, col2, col3 = st.columns([2, 1, 1])
+col1, col2, col3 = st.columns(3)
 with col1:
-    開始日 = st.date_input("日付", key="start_date")
+    start_date = st.date_input("日付", datetime.now().date())
 with col2:
-    開始時 = st.text_input("時", value="", placeholder="00", key="start_hour")
+    start_hour = st.number_input("時", min_value=0, max_value=23, value=9)
 with col3:
-    開始分 = st.text_input("分", value="", placeholder="00", key="start_minute")
+    start_min = st.number_input("分", min_value=0, max_value=59, value=0)
 
-# --- 終了日時 ---
 st.subheader("終了日時")
-col4, col5, col6 = st.columns([2, 1, 1])
+col4, col5, col6 = st.columns(3)
 with col4:
-    終了日 = st.date_input("日付", key="end_date")
+    end_date = st.date_input("日付 ", datetime.now().date())
 with col5:
-    終了時 = st.text_input("時", value="", placeholder="00", key="end_hour")
+    end_hour = st.number_input("時 ", min_value=0, max_value=23, value=10)
 with col6:
-    終了分 = st.text_input("分", value="", placeholder="00", key="end_minute")
-
-# --- 入力検証とdatetime生成 ---
-try:
-    開始時 = int(開始時) if 開始時.strip() != "" else 0
-    開始分 = int(開始分) if 開始分.strip() != "" else 0
-    終了時 = int(終了時) if 終了時.strip() != "" else 0
-    終了分 = int(終了分) if 終了分.strip() != "" else 0
-
-    開始時刻 = datetime.strptime(f"{開始時:02d}:{開始分:02d}", "%H:%M").time()
-    終了時刻 = datetime.strptime(f"{終了時:02d}:{終了分:02d}", "%H:%M").time()
-
-    開始日時 = datetime.combine(開始日, 開始時刻)
-    終了日時 = datetime.combine(終了日, 終了時刻)
-except ValueError:
-    st.error("⚠ 時間の入力は 0〜23 時・0〜59 分の数値で入力してください。")
+    end_min = st.number_input("分 ", min_value=0, max_value=59, value=0)
 
 # --- 測定値入力 ---
 st.subheader("測定値入力")
 
-col5, col6 = st.columns([2, 2])
+col5, col6 = st.columns(2)
 with col5:
     P1 = st.text_input("開始圧力 (MPa)", placeholder="例：0.0799")
 with col6:
     T1 = st.text_input("開始温度 (℃)", placeholder="例：27.2")
 
-col7, col8 = st.columns([2, 2])
+col7, col8 = st.columns(2)
 with col7:
     P2p = st.text_input("終了圧力 (MPa)", placeholder="例：0.0815")
 with col8:
     T2 = st.text_input("終了温度 (℃)", placeholder="例：29.8")
 
-# --- 数値変換（バリデーション無警告） ---
+tester = st.text_input("試験実施者")
+
+# --- 数値変換 ---
 def safe_float(v):
     try:
         return float(v.strip()) if v else None
@@ -80,70 +67,63 @@ T1 = safe_float(T1)
 P2p = safe_float(P2p)
 T2 = safe_float(T2)
 
-
-試験実施者 = st.text_input("試験実施者")
-
-# --- 保存ボタン ---
+# --- 判定処理 ---
 if st.button("判定・保存"):
-    if None in (P1, P2p, T1, T2):
-        st.warning("⚠ 圧力・温度のすべてを入力してください。")
+
+    if None in (P1, T1, P2p, T2):
+        st.error("⚠ 数値入力が不足しています。")
     else:
+        # ボイル・シャルル補正
+        P2_corr = P2p * (T1 + 273.15) / (T2 + 273.15)
+        delta_P = P2_corr - P1
+        tolerance = P1 * 0.01  # ±1%
+
+        if abs(delta_P) <= tolerance:
+            result = "合格"
+            result_color = "green"
+        else:
+            result = "不合格"
+            result_color = "red"
+
+        # 結果表示
+        st.markdown("## 📊 計算結果（ボイル・シャルルの法則に基づく補正）")
+        st.write(f"- 補正後終了圧力 P2_corr: **{P2_corr:.4f} MPa**")
+        st.write(f"- 圧力変化量 ΔP: **{delta_P:.4f} MPa**")
+        st.write(f"- 判定範囲: ±**{tolerance:.4f} MPa**")
+        st.markdown(f"### <span style='color:{result_color};'>判定結果: {result}</span>", unsafe_allow_html=True)
+
+        # --- Excel 出力 ---
         wb = openpyxl.load_workbook(TEMPLATE)
-        ws = wb["気密試験記録"]
+        ws = wb.active
 
-        # Excelに書き込み
-        ws["D3"] = 系統名
-        ws["D4"] = 試験圧力
-        ws["M4"] = 試験範囲
-        ws["D5"] = 試験媒体
-        ws["M5"] = 放置時間
-        ws["D6"] = 使用機器No
-        ws["M6"] = 測定場所
-        ws["D8"] = 開始日時.strftime("%Y/%m/%d %H:%M")
-        ws["M8"] = 終了日時.strftime("%Y/%m/%d %H:%M")
+        ws["C6"].value = system_name
+        ws["C7"].value = test_pressure
+        ws["C8"].value = test_range
+        ws["C9"].value = test_medium
+        ws["C10"].value = test_time
+        ws["C11"].value = gauge_no
+        ws["C12"].value = test_location
 
-        ws["A10"] = f"{P1:.4f} "
-        ws["C10"] = f"{T1:.1f} "
-        ws["E10"] = f"{P2p:.4f}"
-        ws["G10"] = f"{T2:.1f} "
-        ws["E11"] = 試験実施者
+        ws["C14"].value = str(start_date)
+        ws["E14"].value = f"{start_hour}:{start_min:02d}"
+        ws["C15"].value = str(end_date)
+        ws["E15"].value = f"{end_hour}:{end_min:02d}"
 
-        # --- ボイル・シャルルの法則で補正 ---
-        try:
-            T1_K = T1 + 273.15
-            T2_K = T2 + 273.15
-            P2_corr = P2p * (T1_K / T2_K)
-            deltaP = P2_corr - P1
+        ws["C17"].value = P1
+        ws["C18"].value = T1
+        ws["E17"].value = P2p
+        ws["E18"].value = T2
 
-            # ✅ 判定範囲を固定 ±0.001MPa に変更
-            判定範囲 = 0.001
-            合否 = "合格" if abs(deltaP) <= 判定範囲 else "不合格"
+        ws["F17"].value = P2_corr
+        ws["G17"].value = delta_P
+        ws["H17"].value = f"±{tolerance:.4f}"
+        ws["I17"].value = result
+        ws["C20"].value = tester
 
-            # Excelへ結果を書き込み
-            ws["J10"] = f"{P2_corr:.4f} MPa"
-            ws["M10"] = f"{deltaP:.4f} MPa"
-            ws["O10"] = f"±{判定範囲:.4f} MPa"
-            ws["M11"] = 合否
-
-            # --- Streamlit画面出力 ---
-            st.markdown("### 🧮 計算結果（ボイル・シャルルの法則に基づく補正）")
-            st.write(f"- 補正後終了圧力 P2_corr: **{P2_corr:.4f} MPa**")
-            st.write(f"- 圧力変化量 ⊿P: **{deltaP:.4f} MPa**")
-            st.write(f"- 判定範囲: **±{判定範囲:.4f} MPa**")
-
-            if 合否 == "合格":
-                st.markdown(f"<h4 style='color:green;'>✅ 判定結果: {合否}</h4>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<h4 style='color:red;'>❌ 判定結果: {合否}</h4>", unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error(f"⚠ 計算エラー: {e}")
-
-        # --- ダウンロード処理 ---
+        # Excel保存
         output = BytesIO()
         wb.save(output)
         excel_data = output.getvalue()
-        filename = f"気密試験記録_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         b64 = base64.b64encode(excel_data).decode()
-        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">📥 Excelをダウンロード</a>'
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="気密試験記録.xlsx">📥 Excelをダウンロード</a>'
         st.markdown(href, unsafe_allow_html=True)
