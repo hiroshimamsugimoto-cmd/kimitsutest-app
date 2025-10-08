@@ -3,6 +3,7 @@ import openpyxl
 from datetime import datetime
 from io import BytesIO
 import base64
+import requests
 
 # === 設定 ===
 TEMPLATE = "気密試験記録.xlsx"  # 同じフォルダにテンプレートExcelを置く
@@ -53,6 +54,23 @@ with col8:
     T2 = st.text_input("終了温度 (℃)", placeholder="例：19.3")
 
 試験実施者 = st.text_input("試験実施者")
+
+# --- LINE WORKS Webhook設定（自動保存機能つき） ---
+st.subheader("📤 LINE WORKS送信設定")
+
+# session_stateにURLを保持
+if "webhook_url" not in st.session_state:
+    st.session_state["webhook_url"] = ""
+
+webhook_url = st.text_input(
+    "自分のLINE WORKS Webhook URLを入力（初回のみ）",
+    value=st.session_state["webhook_url"],
+    placeholder="https://apis.worksmobile.com/r/xxxxxxx"
+)
+
+# 入力されたURLを保存（セッション維持）
+if webhook_url:
+    st.session_state["webhook_url"] = webhook_url
 
 # --- 数値変換 ---
 def safe_float(v):
@@ -127,14 +145,28 @@ if st.button("判定・保存"):
             write(ws, "M11", 合否)
             write(ws, "E11", 試験実施者)
 
-            # --- ダウンロード ---
+            # --- Excel保存 ---
             output = BytesIO()
             wb.save(output)
             excel_data = output.getvalue()
             filename = f"気密試験記録_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+            # --- ダウンロードリンク ---
             b64 = base64.b64encode(excel_data).decode()
             href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">📥 Excelをダウンロード</a>'
             st.markdown(href, unsafe_allow_html=True)
+
+            # --- LINE WORKS送信 ---
+            if webhook_url:
+                try:
+                    files = {'file': (filename, excel_data)}
+                    response = requests.post(webhook_url, files=files)
+                    if response.status_code == 200:
+                        st.success("📤 LINE WORKSへ送信しました！")
+                    else:
+                        st.warning(f"⚠ LINE WORKS送信失敗（コード: {response.status_code}）")
+                except Exception as e:
+                    st.error(f"送信エラー: {e}")
 
         except Exception as e:
             st.error(f"⚠ エラーが発生しました: {e}")
