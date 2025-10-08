@@ -55,17 +55,19 @@ except ValueError:
 
 # --- 測定値入力 ---
 st.subheader("測定値入力")
+
 col5, col6 = st.columns([2, 2])
 with col5:
-    P1 = st.number_input("開始圧力 (MPa)", value=None, format="%.4f")
+    P1 = st.number_input("開始圧力 (MPa)", value=None, format="%.4f", step=None)
 with col6:
-    T1 = st.number_input("開始温度 (℃)", value=None, format="%.1f")
+    T1 = st.number_input("開始温度 (℃)", value=None, format="%.1f", step=None)
 
 col7, col8 = st.columns([2, 2])
 with col7:
-    P2p = st.number_input("終了圧力 (MPa)", value=None, format="%.4f")
+    P2p = st.number_input("終了圧力 (MPa)", value=None, format="%.4f", step=None)
 with col8:
-    T2 = st.number_input("終了温度 (℃)", value=None, format="%.1f")
+    T2 = st.number_input("終了温度 (℃)", value=None, format="%.1f", step=None)
+
 
 試験実施者 = st.text_input("試験実施者")
 
